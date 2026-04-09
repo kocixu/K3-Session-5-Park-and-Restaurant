@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Where Shall We Go? 我哋去邊度？</title>
+    <style>
+        body { margin: 0; padding: 0; background-color: #e0f7fa; font-family: 'Arial', sans-serif; overflow: hidden; touch-action: manipulation; }
+        #game-container { position: relative; width: 100vw; height: 100vh; display: flex; justify-content: center; align-items: center; }
+        
+        /* Character */
+        #player { position: absolute; width: 80px; height: 80px; transition: all 1s ease-in-out; z-index: 10; font-size: 60px; display: flex; justify-content: center; align-items: center; }
+
+        /* Locations */
+        .location { position: absolute; width: 100px; height: 110px; text-align: center; cursor: pointer; border-radius: 15px; background: white; box-shadow: 0 4px 8px rgba(0,0,0,0.1); padding: 10px; }
+        .location span { font-size: 40px; display: block; }
+        .location p { margin: 5px 0 0; font-weight: bold; color: #333; font-size: 18px; }
+
+        /* Placement */
+        #loc-park { top: 10%; left: 10%; border: 4px solid #4caf50; }
+        #loc-restaurant { top: 10%; right: 10%; border: 4px solid #ff9800; }
+        #loc-shop { bottom: 15%; left: 10%; border: 4px solid #e91e63; }
+        #loc-lib { bottom: 15%; right: 10%; border: 4px solid #2196f3; }
+        #loc-hospital { top: 40%; right: 5%; border: 4px solid #f44336; }
+
+        #message-box { position: absolute; bottom: 20px; width: 80%; background: rgba(255,255,255,0.9); padding: 15px; border-radius: 20px; text-align: center; font-size: 24px; font-weight: bold; border: 3px solid #ffca28; }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <div id="player">👶</div>
+
+    <div id="loc-park" class="location" onclick="moveTo('公園', 10, 10)"><span>🌳</span><p>公園</p></div>
+    <div id="loc-restaurant" class="location" onclick="moveTo('餐廳', 70, 10)"><span>🍜</span><p>餐廳</p></div>
+    <div id="loc-shop" class="location" onclick="moveTo('服裝店', 10, 70)"><span>👕</span><p>服裝店</p></div>
+    <div id="loc-lib" class="location" onclick="moveTo('圖書館', 70, 70)"><span>📚</span><p>圖書館</p></div>
+    <div id="loc-hospital" class="location" onclick="moveTo('醫院', 75, 40)"><span>🏥</span><p>醫院</p></div>
+
+    <div id="message-box">點擊一個地方去玩啦！<br>(Click a place to go!)</div>
+</div>
+
+<script>
+    const player = document.getElementById('player');
+    const msg = document.getElementById('message-box');
+
+    function speakCantonese(text) {
+        // Use browser Web Speech API
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'zh-HK'; // Sets voice to Hong Kong Cantonese
+        utterance.rate = 0.8;    // Slightly slower for learners
+        window.speechSynthesis.speak(utterance);
+    }
+
+    function moveTo(placeName, x, y) {
+        // Move the emoji player
+        player.style.left = x + '%';
+        player.style.top = y + '%';
+        
+        // Update text
+        msg.innerHTML = "我哋去咗 <b>" + placeName + "</b>！";
+        
+        // Voice Output
+        speakCantonese("我哋去" + placeName);
+    }
+</script>
+
+</body>
+</html>
