@@ -6,11 +6,7 @@
     <title>我要去哪兒？ (社區篇)</title>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser-arcade-physics.min.js"></script>
     <style>
-        body { 
-            margin: 0; padding: 0; background-color: #000; 
-            display: flex; justify-content: center; align-items: center; 
-            height: 100vh; overflow: hidden; 
-        }
+        body { margin: 0; padding: 0; background-color: #000; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
         canvas { box-shadow: 0 10px 30px rgba(0,0,0,0.5); border-radius: 10px; }
     </style>
 </head>
@@ -48,52 +44,56 @@ const CHAR_WIDTH = 100;
 const CHAR_HEIGHT = 144;
 
 function preload() {
-    // Load Images
+    // Show a "Loading" text for desktop stability
+    let loadingText = this.add.text(450, 300, 'Loading...', { fontSize: '32px', fill: '#FFF' }).setOrigin(0.5);
+
     this.load.image('bg', 'assets/community_bg.jpg'); 
     this.load.image('character', 'assets/student.png');
 
-    // Load Location Images and Audio
     locations.forEach(loc => {
         this.load.image(loc.key, `assets/${loc.key}.jpg`);
-        // Note: Using loc.key directly for audio mapping
+        // We use the same key for audio for mobile simplicity
         this.load.audio(loc.key, `assets/${loc.key}.mp3`);
     });
 
-    // Feedback Sounds
     this.load.audio('correct', 'assets/correct.mp3');
     this.load.audio('wrong', 'assets/wrong.mp3');
     this.load.audio('congrats', 'assets/congrats.mp3');
+
+    this.load.on('complete', () => { loadingText.destroy(); });
 }
 
 function create() {
-    let background = this.add.image(450, 300, 'bg');
-    let scaleX = 900 / background.width;
-    let scaleY = 600 / background.height;
-    let scale = Math.max(scaleX, scaleY);
-    background.setScale(scale).setAlpha(0.4);
+    // Ensure background exists before scaling
+    if (this.textures.exists('bg')) {
+        let background = this.add.image(450, 300, 'bg');
+        let scale = Math.max(900 / background.width, 600 / background.height);
+        background.setScale(scale).setAlpha(0.4);
+    }
     
     locations.forEach(loc => {
         let container = this.add.container(loc.x, loc.y);
         let cardBase = this.add.rectangle(0, 0, 240, 220, 0xffffff).setStrokeStyle(6, 0xFFA500);
-        let img = this.add.image(0, -20, loc.key).setDisplaySize(220, 160);
+        
+        if (this.textures.exists(loc.key)) {
+            let img = this.add.image(0, -20, loc.key).setDisplaySize(220, 160);
+            container.add(img);
+        }
+
         let txt = this.add.text(0, 85, loc.text, { 
             fontSize: '24px', color: '#555', fontWeight: 'bold', fontFamily: 'Microsoft JhengHei'
         }).setOrigin(0.5);
         
-        container.add([cardBase, img, txt]);
+        container.add([cardBase, txt]);
         container.setSize(240, 220).setInteractive();
     });
 
-    character = this.add.image(450, 320, 'character');
+    character = this.add.image(450, 320, 'character').setDepth(10).setVisible(false);
     character.displayWidth = CHAR_WIDTH;
     character.displayHeight = CHAR_HEIGHT;
-    character.setInteractive();
-    character.setDepth(10); 
-    this.input.setDraggable(character);
     
     character.setData('startX', 450);
     character.setData('startY', 320);
-    character.setVisible(false);
 
     scoreText = this.add.text(450, 30, '進度: 0/10', { 
         fontSize: '28px', fill: '#000', fontWeight: 'bold', fontFamily: 'Microsoft JhengHei'
@@ -114,28 +114,35 @@ function create() {
 function showStartScreen(scene) {
     startScreen = scene.add.container(450, 300).setDepth(200);
     let overlay = scene.add.rectangle(0, 0, 900, 600, 0x000000, 0.85);
-    let remindText = scene.add.text(0, -100, '社區情境：我要去哪兒？\n請將手機橫放進行遊戲', { 
-        fontSize: '32px', fill: '#fff', align: 'center', fontFamily: 'Microsoft JhengHei', lineSpacing: 10
+    let remindText = scene.add.text(0, -100, '社區情境：我要去哪兒？\n請按「開始」並打開聲音', { 
+        fontSize: '32px', fill: '#fff', align: 'center', fontFamily: 'Microsoft JhengHei'
     }).setOrigin(0.5);
 
     let btnBG = scene.add.rectangle(0, 80, 220, 90, 0xFFA500).setInteractive().setStrokeStyle(4, 0xffffff);
-    let btnText = scene.add.text(0, 80, '開始', { 
-        fontSize: '44px', fill: '#fff', fontWeight: 'bold', fontFamily: 'Microsoft JhengHei'
-    }).setOrigin(0.5);
+    let btnText = scene.add.text(0, 80, '開始', { fontSize: '44px', fill: '#fff', fontWeight: 'bold' }).setOrigin(0.5);
 
     startScreen.add([overlay, remindText, btnBG, btnText]);
 
     btnBG.on('pointerdown', () => {
-        // CRITICAL: Resumes audio context for web browsers
+        // ESSENTIAL FOR MOBILE AUDIO
         if (scene.sound.context.state === 'suspended') {
-            scene.sound.context.resume();
+            scene.sound.context.resume().then(() => {
+                startGame(scene);
+            });
+        } else {
+            startGame(scene);
         }
-        startScreen.destroy();
-        gameStarted = true;
-        character.setVisible(true);
-        scoreText.setVisible(true);
-        startNewTrial(scene);
     });
+}
+
+function startGame(scene) {
+    startScreen.destroy();
+    gameStarted = true;
+    character.setVisible(true).setInteractive();
+    this.game.canvas.style.cursor = 'default';
+    scene.input.setDraggable(character);
+    scoreText.setVisible(true);
+    startNewTrial(scene);
 }
 
 function startNewTrial(scene) {
@@ -146,64 +153,8 @@ function startNewTrial(scene) {
 
     character.x = character.getData('startX');
     character.y = character.getData('startY');
-    character.displayWidth = CHAR_WIDTH;
-    character.displayHeight = CHAR_HEIGHT;
     character.setInteractive();
 
     let available = locations.filter(l => l.key !== lastTargetKey);
     if (trialCount < 5) {
-        let unasked = available.filter(l => !locationsAsked.has(l.key));
-        if (unasked.length > 0) available = unasked;
-    }
-
-    currentTarget = Phaser.Utils.Array.GetRandom(available);
-    lastTargetKey = currentTarget.key;
-    locationsAsked.add(currentTarget.key);
-    
-    // Play the instruction audio
-    scene.sound.play(currentTarget.key);
-}
-
-function checkDrop(scene, char) {
-    let dist = Phaser.Math.Distance.Between(char.x, char.y, currentTarget.x, currentTarget.y);
-    
-    if (dist < 130) {
-        char.disableInteractive();
-        scene.sound.play('correct');
-        trialCount++;
-        scoreText.setText(`進度: ${trialCount}/10`);
-        
-        scene.tweens.add({
-            targets: char,
-            x: currentTarget.x,
-            y: currentTarget.y,
-            displayWidth: CHAR_WIDTH * 1.15,
-            displayHeight: CHAR_HEIGHT * 1.15,
-            duration: 200,
-            yoyo: true,
-            onComplete: () => scene.time.delayedCall(800, () => startNewTrial(scene))
-        });
-    } else {
-        scene.sound.play('wrong');
-        scene.tweens.add({
-            targets: char,
-            x: char.getData('startX'),
-            y: char.getData('startY'),
-            duration: 500,
-            ease: 'Back.easeOut'
-        });
-    }
-}
-
-function showCongratulation(scene) {
-    scene.sound.play('congrats');
-    scene.add.rectangle(450, 300, 900, 600, 0x000000, 0.8).setDepth(150);
-    scene.add.text(450, 300, '真棒！\n你認識社區的地方了！', { 
-        fontSize: '60px', fill: '#FFF', align: 'center', fontFamily: 'Microsoft JhengHei',
-        stroke: '#FFA500', strokeThickness: 10
-    }).setOrigin(0.5).setDepth(151);
-    character.setVisible(false);
-}
-</script>
-</body>
-</html>
+        let unasked = available.filter(l => !locationsAsked.
