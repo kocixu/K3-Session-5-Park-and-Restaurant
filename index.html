@@ -48,19 +48,15 @@ const CHAR_WIDTH = 100;
 const CHAR_HEIGHT = 144;
 
 function preload() {
-    // Add a listener to catch errors so the screen doesn't stay black
-    this.load.on('loaderror', function (file) {
-        console.warn('Error loading file: ' + file.src);
-    });
-
-    // Load Background & Character (Verify these are in assets/)
+    // Load Images
     this.load.image('bg', 'assets/community_bg.jpg'); 
     this.load.image('character', 'assets/student.png');
 
-    // Load Locations
+    // Load Location Images and Audio
     locations.forEach(loc => {
         this.load.image(loc.key, `assets/${loc.key}.jpg`);
-        this.load.audio(loc.key + '_vo', `assets/${loc.key}_vo.mp3`);
+        // Note: Using loc.key directly for audio mapping
+        this.load.audio(loc.key, `assets/${loc.key}.mp3`);
     });
 
     // Feedback Sounds
@@ -70,35 +66,24 @@ function preload() {
 }
 
 function create() {
-    // Background Setup
-    let bgImage = this.textures.get('bg');
     let background = this.add.image(450, 300, 'bg');
-    if (bgImage.key !== '__MISSING') {
-        let scaleX = 900 / background.width;
-        let scaleY = 600 / background.height;
-        background.setScale(Math.max(scaleX, scaleY)).setAlpha(0.4);
-    }
+    let scaleX = 900 / background.width;
+    let scaleY = 600 / background.height;
+    let scale = Math.max(scaleX, scaleY);
+    background.setScale(scale).setAlpha(0.4);
     
-    // Create Location Cards
     locations.forEach(loc => {
         let container = this.add.container(loc.x, loc.y);
         let cardBase = this.add.rectangle(0, 0, 240, 220, 0xffffff).setStrokeStyle(6, 0xFFA500);
-        
-        // Add image only if loaded
-        if (this.textures.exists(loc.key)) {
-            let img = this.add.image(0, -20, loc.key).setDisplaySize(220, 160);
-            container.add(img);
-        }
-
+        let img = this.add.image(0, -20, loc.key).setDisplaySize(220, 160);
         let txt = this.add.text(0, 85, loc.text, { 
             fontSize: '24px', color: '#555', fontWeight: 'bold', fontFamily: 'Microsoft JhengHei'
         }).setOrigin(0.5);
         
-        container.add([cardBase, txt]);
+        container.add([cardBase, img, txt]);
         container.setSize(240, 220).setInteractive();
     });
 
-    // Character Setup
     character = this.add.image(450, 320, 'character');
     character.displayWidth = CHAR_WIDTH;
     character.displayHeight = CHAR_HEIGHT;
@@ -110,14 +95,12 @@ function create() {
     character.setData('startY', 320);
     character.setVisible(false);
 
-    // UI Progress Text
     scoreText = this.add.text(450, 30, '進度: 0/10', { 
         fontSize: '28px', fill: '#000', fontWeight: 'bold', fontFamily: 'Microsoft JhengHei'
     }).setOrigin(0.5).setVisible(false).setDepth(100);
 
     showStartScreen(this);
 
-    // Interaction Logic
     this.input.on('drag', (pointer, gameObject, dragX, dragY) => {
         gameObject.x = dragX;
         gameObject.y = dragY;
@@ -143,6 +126,7 @@ function showStartScreen(scene) {
     startScreen.add([overlay, remindText, btnBG, btnText]);
 
     btnBG.on('pointerdown', () => {
+        // CRITICAL: Resumes audio context for web browsers
         if (scene.sound.context.state === 'suspended') {
             scene.sound.context.resume();
         }
@@ -176,10 +160,8 @@ function startNewTrial(scene) {
     lastTargetKey = currentTarget.key;
     locationsAsked.add(currentTarget.key);
     
-    // Play sound if it exists
-    if (scene.cache.audio.exists(currentTarget.key + '_vo')) {
-        scene.sound.play(currentTarget.key + '_vo');
-    }
+    // Play the instruction audio
+    scene.sound.play(currentTarget.key);
 }
 
 function checkDrop(scene, char) {
@@ -187,7 +169,7 @@ function checkDrop(scene, char) {
     
     if (dist < 130) {
         char.disableInteractive();
-        if (scene.cache.audio.exists('correct')) scene.sound.play('correct');
+        scene.sound.play('correct');
         trialCount++;
         scoreText.setText(`進度: ${trialCount}/10`);
         
@@ -202,7 +184,7 @@ function checkDrop(scene, char) {
             onComplete: () => scene.time.delayedCall(800, () => startNewTrial(scene))
         });
     } else {
-        if (scene.cache.audio.exists('wrong')) scene.sound.play('wrong');
+        scene.sound.play('wrong');
         scene.tweens.add({
             targets: char,
             x: char.getData('startX'),
@@ -214,5 +196,14 @@ function checkDrop(scene, char) {
 }
 
 function showCongratulation(scene) {
-    if (scene.cache.audio.exists('congrats')) scene.sound.play('congrats');
-    scene.add.rectangle(450, 30
+    scene.sound.play('congrats');
+    scene.add.rectangle(450, 300, 900, 600, 0x000000, 0.8).setDepth(150);
+    scene.add.text(450, 300, '真棒！\n你認識社區的地方了！', { 
+        fontSize: '60px', fill: '#FFF', align: 'center', fontFamily: 'Microsoft JhengHei',
+        stroke: '#FFA500', strokeThickness: 10
+    }).setOrigin(0.5).setDepth(151);
+    character.setVisible(false);
+}
+</script>
+</body>
+</html>
