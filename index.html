@@ -46,7 +46,6 @@ const config = {
 
 const game = new Phaser.Game(config);
 
-// Layout grid parameters tuned for perfect screen tracking boundaries
 let locations = [
     { key: 'park', text: '公園', x: 165, y: 165 },
     { key: 'restaurant', text: '餐廳', x: 405, y: 165 },
@@ -62,7 +61,6 @@ let audioBtn;
 const CHAR_WIDTH = 90;
 const CHAR_HEIGHT = 130;
 
-// Character Spawning Zone located perfectly in the remaining bottom-right quadrant
 const SPAWN_X = 645;
 const SPAWN_Y = 410;
 
@@ -96,25 +94,25 @@ function create() {
         bg.setScale(Math.max(scaleX, scaleY)).setAlpha(0.4);
     }
     
-    // Render location cards with visual labels
+    // Flat rendering layout (No containers to mess with asset positioning properties)
     locations.forEach(loc => {
-        let container = this.add.container(loc.x, loc.y);
-        let cardBase = this.add.rectangle(0, 0, 215, 190, 0xffffff).setStrokeStyle(5, 0xFFA500);
+        // 1. Base Layer Card Border
+        let cardBase = this.add.rectangle(loc.x, loc.y, 215, 190, 0xffffff)
+            .setStrokeStyle(5, 0xFFA500)
+            .setInteractive();
         
+        // 2. Middle Layer Target Image Asset
         if (this.textures.exists(loc.key)) {
-            let img = this.add.image(0, -12, loc.key).setDisplaySize(201, 140);
-            container.add(img);
+            this.add.image(loc.x, loc.y - 12, loc.key).setDisplaySize(201, 140);
         }
         
-        let txt = this.add.text(0, 72, loc.text, { 
+        // 3. Top Layer Text Label
+        this.add.text(loc.x, loc.y + 72, loc.text, { 
             fontSize: '20px', color: '#555', fontWeight: 'bold', fontFamily: 'Microsoft JhengHei'
         }).setOrigin(0.5);
-        
-        container.add([cardBase, txt]);
-        container.setSize(215, 190).setInteractive();
     });
 
-    // Initialize Character
+    // Initialize Character Sprite Layer
     character = this.add.image(SPAWN_X, SPAWN_Y, 'character');
     character.displayWidth = CHAR_WIDTH;
     character.displayHeight = CHAR_HEIGHT;
@@ -126,12 +124,12 @@ function create() {
     character.setData('startY', SPAWN_Y);
     character.setVisible(false);
 
-    // Progress Monitor
+    // Progress Metrics monitor label
     scoreText = this.add.text(405, 45, '進度: 0 / 10', { 
         fontSize: '26px', fill: '#000', fontWeight: 'bold', fontFamily: 'Microsoft JhengHei'
     }).setOrigin(0.5).setVisible(false).setDepth(100);
 
-    // Playback control object layout positioned directly beneath '餐廳' (x: 405, y: 295)
+    // Audio Playback Speaker Control interface
     audioBtn = this.add.container(405, 295).setVisible(false).setDepth(100);
     let btnBg = this.add.circle(0, 0, 32, 0xffffff, 0).setInteractive();
     let emojiText = this.add.text(0, 0, '🔊', { fontSize: '44px' }).setOrigin(0.5);
@@ -197,11 +195,9 @@ function showStartScreen(scene) {
     });
 }
 
-// Fisher-Yates balancing logic ensuring every community card receives equal selection exposure
 function setupBalancedQueue() {
     let temp = [];
     const keys = locations.map(loc => loc.key);
-    // Duplicate the 5 options to form a solid pool of 10 items
     for (let i = 0; i < 10; i++) {
         temp.push(keys[i % keys.length]);
     }
